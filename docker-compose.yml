@@ -1,0 +1,31 @@
+services:
+  web:
+    build: .
+    container_name: mri-qa-web
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg://mriqa_user:change_this_password@db:5432/mriqa
+      AUTO_CREATE_DB: "1"
+    volumes:
+      - ./instance:/app/instance
+
+  db:
+    image: postgres:16
+    container_name: mri-qa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mriqa
+      POSTGRES_USER: mriqa_user
+      POSTGRES_PASSWORD: change_this_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

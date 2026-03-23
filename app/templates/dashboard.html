@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-shell dashboard-shell mb-4">
+  <div class="hero-copy">
+    <div class="eyebrow">ACR MRI QA</div>
+    <h1 class="page-title mt-3">Dashboard</h1>
+    <p class="muted hero-text">Upload studies, open reports, and manage saved jobs.</p>
+    <div class="stats-row compact-stats">
+      <div class="stat-box">
+        <div class="stat-label">Saved runs</div>
+        <div class="stat-value">{{ jobs|length }}</div>
+      </div>
+      <div class="stat-box stat-wide">
+        <div class="stat-label">Accepted files</div>
+        <div class="stat-value stat-files">ZIP, DICOM, folders</div>
+      </div>
+    </div>
+  </div>
+  <div class="dashboard-visual" aria-hidden="true">
+    <img src="{{ url_for('static', filename='images/mri.svg') }}" alt="MRI scanner illustration">
+  </div>
+</section>
+
+<div class="dashboard-grid">
+  <div class="card p-4 section-card">
+    <div class="section-head">
+      <h2 class="section-title mb-0">Upload study</h2>
+      <span class="section-kicker">MRI / ACR QA</span>
+    </div>
+    <form method="post" action="{{ url_for('main.upload') }}" enctype="multipart/form-data">
+      <div class="mb-3">
+        <input class="form-control" type="file" name="input_files" multiple required>
+      </div>
+      <div class="upload-note">Accepted: ZIP, DICOM, images, or study files</div>
+      <button class="btn btn-primary mt-3" type="submit">Upload and run QA</button>
+    </form>
+  </div>
+
+  <div class="card p-4 section-card">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+      <div>
+        <h2 class="section-title mb-0">Saved reports</h2>
+        <div class="muted small">Open, copy, or remove completed QA jobs.</div>
+      </div>
+      {% if jobs %}
+      <form method="post" action="{{ url_for('main.clear_jobs') }}" onsubmit="return confirm('Clear all QA runs?');">
+        <button class="btn btn-danger btn-sm" type="submit">Clear all jobs</button>
+      </form>
+      {% endif %}
+    </div>
+
+    {% if jobs %}
+      <div class="job-list">
+        {% for job in jobs %}
+          <div class="job-item">
+            <div class="job-main">
+              <h3>Job #{{ job.id }}</h3>
+              <div class="job-meta">{{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+            </div>
+            <div class="job-actions">
+              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.report', job_id=job.id) }}">Open report</a>
+              {% if job.share_token %}
+                <button class="btn btn-outline-primary btn-sm" type="button" onclick="navigator.clipboard.writeText('{{ url_for('main.share_report', token=job.share_token, _external=True) }}'); this.textContent='Copied'; setTimeout(()=>this.textContent='Copy link', 1400);">Copy link</button>
+              {% endif %}
+              <form method="post" action="{{ url_for('main.delete_job', job_id=job.id) }}" onsubmit="return confirm('Delete Job #{{ job.id }}?');">
+                <button class="btn btn-danger btn-sm" type="submit">Delete job</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3>No reports yet</h3>
+        <p>Upload a study to generate the first QA report.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

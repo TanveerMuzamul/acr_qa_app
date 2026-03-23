@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1 class="page-title">QA Report · Job #{{ job.id }}</h1>
+    <div class="muted">Choose a series and slice to see the report summary, results, and acquisition details.</div>
+  </div>
+  <div class="toolbar-actions">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.dashboard') }}">Back</a>
+    <a id="downloadBtn" class="btn btn-primary btn-sm" href="#">Download JSON</a>
+  </div>
+</div>
+
+<div class="card filter-card mb-4">
+  <div class="row g-3 align-items-end">
+    <div class="col-lg-6">
+      <label class="form-label fw-bold">Series</label>
+      <select id="seriesSelect" class="form-select">
+        {% for s in index.series if s.series_uid != '__ALL__' or (index.series|length == 1) %}
+          <option value="{{ s.series_key or s.series_uid }}" {% if (s.series_key or s.series_uid) == default_series_uid %}selected{% endif %}>{{ s.description or 'Series' }} · {{ s.num_slices }} slices</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-lg-6">
+      <label class="form-label fw-bold">Slice</label>
+      <div class="slice-controls">
+        <div class="slice-row">
+          <button class="btn btn-outline-secondary btn-sm" id="prevBtn" type="button">Prev</button>
+          <input id="sliceSlider" type="range" class="form-range" min="0" max="0" value="{{ default_slice_idx }}">
+          <button class="btn btn-outline-secondary btn-sm" id="nextBtn" type="button">Next</button>
+          <span id="sliceLabel" class="slice-chip">Slice</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="segmented-tabs" role="tablist" aria-label="Report sections">
+  <button class="active" data-tab="overviewPanel" type="button">Overview</button>
+  <button data-tab="resultsPanel" type="button">Results</button>
+  <button data-tab="detailsPanel" type="button">Details</button>
+</div>
+
+<section id="overviewPanel" class="tab-panel active">
+  <div class="report-grid">
+    <div class="card p-4">
+      <div class="card-head mb-3">
+        <div>
+          <h2 class="section-title">Slice preview</h2>
+          <div class="muted" id="seriesMeta">Loading series…</div>
+        </div>
+        <div id="overallBadge" class="overall-pill overall-pass">Loading</div>
+      </div>
+      <div class="preview-frame" id="previewFrame">
+        <img id="sliceImg" alt="Slice preview" style="display:none;">
+        <div id="previewEmpty" class="preview-empty">Loading preview…</div>
+      </div>
+    </div>
+    <div class="card p-4">
+      <h2 class="section-title">Quick summary</h2>
+      <div class="summary-grid mt-3">
+        <div class="summary-box"><div class="k">Overall</div><div class="v" id="overallText">-</div></div>
+        <div class="summary-box"><div class="k">Passed</div><div class="v" id="passedCount">0</div></div>
+        <div class="summary-box"><div class="k">Failed</div><div class="v" id="failedCount">0</div></div>
+      </div>
+      <div class="info-banner" id="summaryLine">Loading report summary…</div>
+      <div class="metric-highlight" id="highlightCard" style="display:none;">
+        <div class="metric-highlight-label">Primary issue</div>
+        <h4 id="highlightTitle"></h4>
+        <div class="highlight-grid">
+          <div><span>Measured</span><strong id="highlightMeasured"></strong></div>
+          <div><span>Need</span><strong id="highlightNeed"></strong></div>
+        </div>
+        <p><strong>Reason:</strong> <span id="highlightReason"></span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="resultsPanel" class="tab-panel">
+  <div class="metric-cards" id="metricsBody">
+    <div class="card p-4 muted">Loading results…</div>
+  </div>
+</section>
+
+<section id="detailsPanel" class="tab-panel">
+  <div class="card p-4">
+    <h2 class="section-title mb-3">Series details</h2>
+    <div class="details-table">
+      <div class="details-row"><div class="details-key">Series description</div><div class="details-val" id="detailSeries">-</div></div>
+      <div class="details-row"><div class="details-key">Image size</div><div class="details-val" id="detailImage">-</div></div>
+      <div class="details-row"><div class="details-key">Slices in series</div><div class="details-val" id="detailSlices">-</div></div>
+      <div class="details-row"><div class="details-key">Detected DICOM files</div><div class="details-val" id="detailDicom">-</div></div>
+      <div class="details-row"><div class="details-key">Detected series</div><div class="details-val" id="detailSeriesCount">-</div></div>
+      <div class="details-row"><div class="details-key">Ignored non-DICOM files</div><div class="details-val" id="detailIgnored">-</div></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const JOB_ID = {{ job.id }};
+const apiUrl = (series, slice) => `/api/report/${JOB_ID}?series=${encodeURIComponent(series)}&slice=${slice}`;
+const seriesSelect = document.getElementById('seriesSelect');
+const sliceSlider = document.getElementById('sliceSlider');
+const sliceLabel = document.getElementById('sliceLabel');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const metricsBody = document.getElementById('metricsBody');
+const seriesMeta = document.getElementById('seriesMeta');
+const sliceImg = document.getElementById('sliceImg');
+const previewEmpty = document.getElementById('previewEmpty');
+const overallBadge = document.getElementById('overallBadge');
+const overallText = document.getElementById('overallText');
+const passedCount = document.getElementById('passedCount');
+const failedCount = document.getElementById('failedCount');
+const summaryLine = document.getElementById('summaryLine');
+const highlightCard = document.getElementById('highlightCard');
+const highlightTitle = document.getElementById('highlightTitle');
+const highlightMeasured = document.getElementById('highlightMeasured');
+const highlightNeed = document.getElementById('highlightNeed');
+const highlightReason = document.getElementById('highlightReason');
+
+function statusClass(status) {
+  if (status === 'PASS') return 'status-pass';
+  if (status === 'SKIP') return 'status-skip';
+  return 'status-fail';
+}
+
+function setTabs() {
+  const buttons = document.querySelectorAll('.segmented-tabs button');
+  const panels = document.querySelectorAll('.tab-panel');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+function updatePreview(url) {
+  if (!url) {
+    sliceImg.style.display = 'none';
+    previewEmpty.textContent = 'Preview not available for this slice.';
+    previewEmpty.style.display = 'block';
+    return;
+  }
+  previewEmpty.textContent = 'Loading preview…';
+  previewEmpty.style.display = 'block';
+  sliceImg.style.display = 'none';
+  sliceImg.onload = () => {
+    previewEmpty.style.display = 'none';
+    sliceImg.style.display = 'block';
+  };
+  sliceImg.onerror = () => {
+    previewEmpty.textContent = 'Preview not available for this slice.';
+    previewEmpty.style.display = 'block';
+    sliceImg.style.display = 'none';
+  };
+  sliceImg.src = `${url}?t=${Date.now()}`;
+}
+
+function renderMetrics(metrics) {
+  metricsBody.innerHTML = '';
+  metrics.forEach(m => {
+    const item = document.createElement('article');
+    item.className = `metric-card ${m.status === 'PASS' ? 'metric-card-pass' : 'metric-card-fail'}`;
+    item.innerHTML = `
+      <div class="metric-card-top">
+        <div class="metric-title">${m.name}</div>
+        <span class="status-badge ${statusClass(m.status)}">${m.status}</span>
+      </div>
+      <div class="metric-card-grid">
+        <div><span>Measured</span><strong>${m.value}</strong></div>
+        <div><span>Need</span><strong>${m.expected}</strong></div>
+      </div>
+      <div class="metric-reason">${m.reason || '-'}<\/div>
+    `;
+    metricsBody.appendChild(item);
+  });
+}
+
+function updateSummary(metrics, overallStatus) {
+  const failed = metrics.filter(m => m.status === 'FAIL');
+  const passed = metrics.filter(m => m.status === 'PASS');
+  overallText.textContent = overallStatus;
+  passedCount.textContent = passed.length;
+  failedCount.textContent = failed.length;
+  overallBadge.textContent = overallStatus;
+  overallBadge.className = `overall-pill ${overallStatus === 'PASS' ? 'overall-pass' : 'overall-fail'}`;
+  if (failed.length) {
+    summaryLine.textContent = `${failed.length} metric(s) failed for the selected slice.`;
+    highlightCard.style.display = 'block';
+    const primary = failed[0] || metrics[0];
+    highlightTitle.textContent = primary.name;
+    highlightMeasured.textContent = primary.value;
+    highlightNeed.textContent = primary.expected;
+    highlightReason.textContent = primary.reason || '-';
+  } else {
+    summaryLine.textContent = 'All reported metrics passed for the selected slice.';
+    highlightCard.style.display = 'none';
+  }
+}
+
+async function refresh() {
+  const series = seriesSelect.value;
+  const slice = parseInt(sliceSlider.value || '0', 10);
+  downloadBtn.href = `/report/${JOB_ID}/download.json?series_id=${encodeURIComponent(series)}&slice_index=${slice}`;
+  metricsBody.innerHTML = '<div class="card p-4 muted">Loading results…</div>';
+  const res = await fetch(apiUrl(series, slice));
+  const data = await res.json();
+  if (data.error) {
+    metricsBody.innerHTML = `<div class="card p-4 text-danger">${data.error}</div>`;
+    return;
+  }
+  sliceSlider.max = Math.max(0, data.num_slices_in_series - 1);
+  sliceSlider.value = data.slice_idx;
+  sliceLabel.textContent = `Slice ${data.slice_idx + 1} / ${data.num_slices_in_series}`;
+  seriesMeta.textContent = `${data.series_description || 'Series'} · ${data.num_slices_in_series} slices`;
+  renderMetrics(data.metrics);
+  updateSummary(data.metrics, data.overall_status || 'FAIL');
+  updatePreview(data.image_url);
+
+  document.getElementById('detailSeries').textContent = data.series_description || '-';
+  document.getElementById('detailImage').textContent = data.image_shape || '-';
+  document.getElementById('detailSlices').textContent = data.num_slices_in_series ?? '-';
+  document.getElementById('detailDicom').textContent = data.dicom_files_detected ?? '-';
+  document.getElementById('detailSeriesCount').textContent = data.series_found ?? '-';
+  const ignoredEl = document.getElementById('detailIgnored');
+  if (ignoredEl) ignoredEl.textContent = data.ignored_non_dicom_files ?? '-';
+}
+
+seriesSelect.addEventListener('change', () => {
+  sliceSlider.value = 0;
+  refresh();
+});
+sliceSlider.addEventListener('change', refresh);
+prevBtn.addEventListener('click', () => {
+  sliceSlider.value = Math.max(0, parseInt(sliceSlider.value || '0', 10) - 1);
+  refresh();
+});
+nextBtn.addEventListener('click', () => {
+  sliceSlider.value = Math.min(parseInt(sliceSlider.max || '0', 10), parseInt(sliceSlider.value || '0', 10) + 1);
+  refresh();
+});
+setTabs();
+refresh();
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="landing-shell">
+  <div class="landing-copy">
+    <div class="eyebrow">ACR MRI QA</div>
+    <h1 class="page-title mt-3">ACR MRI QA reporting</h1>
+    <p class="muted hero-text">Upload studies, run QA checks, and export a polished report.</p>
+    <div class="d-flex gap-3 flex-wrap mt-4">
+      <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Create account</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">Login</a>
+    </div>
+  </div>
+  <div class="landing-panel" aria-hidden="true">
+    <img src="{{ url_for('static', filename='images/mri.svg') }}" alt="MRI scanner illustration">
+  </div>
+</section>
+{% endblock %}

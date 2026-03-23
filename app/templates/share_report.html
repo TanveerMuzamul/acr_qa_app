@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1 class="page-title">Shared QA Report · Job #{{ job.id }}</h1>
+    <div class="muted">Read-only report view.</div>
+  </div>
+</div>
+
+<div class="card filter-card mb-4">
+  <div class="row g-3 align-items-end">
+    <div class="col-lg-6">
+      <label class="form-label fw-bold">Series</label>
+      <select id="seriesSelect" class="form-select">
+        {% for s in index.series if s.series_uid != '__ALL__' or (index.series|length == 1) %}
+          <option value="{{ s.series_key or s.series_uid }}" {% if (s.series_key or s.series_uid) == default_series_uid %}selected{% endif %}>{{ s.description or 'Series' }} · {{ s.num_slices }} slices</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-lg-6">
+      <label class="form-label fw-bold">Slice</label>
+      <div class="slice-row">
+        <button class="btn btn-outline-secondary btn-sm" id="prevBtn" type="button">Prev</button>
+        <input id="sliceSlider" type="range" class="form-range" min="0" max="0" value="{{ default_slice_idx }}">
+        <button class="btn btn-outline-secondary btn-sm" id="nextBtn" type="button">Next</button>
+        <span id="sliceLabel" class="slice-chip">Slice</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="report-grid">
+  <div class="card p-4">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <div>
+        <h2 class="section-title">Slice preview</h2>
+        <div class="muted" id="seriesMeta">Loading series…</div>
+      </div>
+      <div id="overallBadge" class="overall-pill overall-pass">Loading</div>
+    </div>
+    <div class="preview-frame">
+      <img id="sliceImg" alt="Slice preview" style="display:none;">
+      <div id="previewEmpty" class="preview-empty">Loading preview…</div>
+    </div>
+  </div>
+  <div class="card p-4">
+    <h2 class="section-title mb-3">Metric results</h2>
+    <div class="table-wrap">
+      <table class="table align-middle">
+        <thead><tr><th>Metric</th><th>Measured</th><th>Need</th><th>Status</th><th>Reason</th></tr></thead>
+        <tbody id="metricsBody"><tr><td colspan="5" class="muted">Loading results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TOKEN = {{ token|tojson }};
+const apiUrl = (series, slice) => `/api/share/report/${TOKEN}?series=${encodeURIComponent(series)}&slice=${slice}`;
+const seriesSelect = document.getElementById('seriesSelect');
+const sliceSlider = document.getElementById('sliceSlider');
+const sliceLabel = document.getElementById('sliceLabel');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const metricsBody = document.getElementById('metricsBody');
+const seriesMeta = document.getElementById('seriesMeta');
+const sliceImg = document.getElementById('sliceImg');
+const previewEmpty = document.getElementById('previewEmpty');
+const overallBadge = document.getElementById('overallBadge');
+function statusClass(status) { return status === 'PASS' ? 'status-pass' : 'status-fail'; }
+function renderMetrics(metrics) {
+  metricsBody.innerHTML = '';
+  metrics.forEach(m => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td class="metric-name">${m.name}</td><td>${m.value}</td><td>${m.expected}</td><td><span class="status-badge ${statusClass(m.status)}">${m.status}</span></td><td class="reason-cell">${m.reason || '-'}</td>`;
+    metricsBody.appendChild(row);
+  });
+}
+function updatePreview(url) {
+  previewEmpty.textContent = 'Loading preview…';
+  previewEmpty.style.display = 'block';
+  sliceImg.style.display = 'none';
+  sliceImg.onload = () => { previewEmpty.style.display = 'none'; sliceImg.style.display = 'block'; };
+  sliceImg.onerror = () => { previewEmpty.textContent = 'Preview not available for this slice.'; previewEmpty.style.display = 'block'; sliceImg.style.display = 'none'; };
+  sliceImg.src = `${url}?t=${Date.now()}`;
+}
+async function refresh() {
+  const series = seriesSelect.value;
+  const slice = parseInt(sliceSlider.value || '0', 10);
+  const res = await fetch(apiUrl(series, slice));
+  const data = await res.json();
+  if (data.error) { return; }
+  sliceSlider.max = Math.max(0, data.num_slices_in_series - 1);
+  sliceSlider.value = data.slice_idx;
+  sliceLabel.textContent = `Slice ${data.slice_idx + 1} / ${data.num_slices_in_series}`;
+  overallBadge.textContent = data.overall_status || 'FAIL';
+  overallBadge.className = `overall-pill ${data.overall_status === 'PASS' ? 'overall-pass' : 'overall-fail'}`;
+  seriesMeta.textContent = `${data.series_description || 'Series'} · ${data.num_slices_in_series} slices`;
+  renderMetrics(data.metrics);
+  updatePreview(data.image_url);
+}
+seriesSelect.addEventListener('change', () => { sliceSlider.value = 0; refresh(); });
+sliceSlider.addEventListener('change', refresh);
+prevBtn.addEventListener('click', () => { sliceSlider.value = Math.max(0, parseInt(sliceSlider.value || '0', 10) - 1); refresh(); });
+nextBtn.addEventListener('click', () => { sliceSlider.value = Math.min(parseInt(sliceSlider.max || '0', 10), parseInt(sliceSlider.value || '0', 10) + 1); refresh(); });
+refresh();
+</script>
+{% endblock %}

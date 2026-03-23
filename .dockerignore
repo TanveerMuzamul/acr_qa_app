@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+instance/
+raw_uploads/
+cache/
+.pytest_cache/
