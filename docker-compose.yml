@@ -1,0 +1,15 @@
+services:
+  mri-qa:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      MRI_APP_SECRET: change-this-secret
+      MRI_APP_USER: user
+      MRI_APP_PASSWORD: User@123
+    volumes:
+      - ./uploaded_sets:/app/uploaded_sets
+      - mri_user_data:/app/data
+
+volumes:
+  mri_user_data:

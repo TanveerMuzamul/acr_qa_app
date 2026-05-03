@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MRI Phantom QA Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand-badge">MRI QA</div>
+        <h1>ACR Phantom Analysis Dashboard</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="downloadReportBtn" class="btn ghost" disabled>Download PDF</button>
+        <button id="logoutBtn" class="btn dark">Logout</button>
+      </div>
+    </header>
+
+    <section class="panel upload-panel">
+      <div>
+        <h2>Upload New Set</h2>
+        <p class="muted">Upload a DICOM ZIP, then the dashboard will validate the data and refresh the results automatically.</p>
+      </div>
+      <div class="upload-grid">
+        <div class="field">
+          <label for="setName">Set Name</label>
+          <input id="setName" type="text" placeholder="Enter set name" />
+        </div>
+        <div class="field">
+          <label for="zipFile">ZIP File</label>
+          <input id="zipFile" type="file" accept=".zip" />
+        </div>
+        <div class="field button-field">
+          <button id="addSetBtn" class="btn primary">Add Set</button>
+        </div>
+      </div>
+      <div id="uploadStatus" class="status-text"></div>
+    </section>
+
+    <section class="dashboard-grid">
+      <aside class="panel sidebar-panel">
+        <div class="sidebar-header">
+          <h2>Set List</h2>
+          <span id="setCount" class="small-pill">0</span>
+        </div>
+        <div id="setList" class="set-list"></div>
+      </aside>
+
+      <main class="content-stack">
+        <section class="panel summary-panel">
+          <div>
+            <p class="eyebrow">Current set</p>
+            <h2 id="currentSetTitle">No set selected</h2>
+            <p id="setStatusText" class="muted"></p>
+          </div>
+          <div class="summary-row">
+            <div class="summary-box pass" id="passedCount">Passed: 0</div>
+            <div class="summary-box fail" id="failedCount">Failed: 0</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Dataset Overview</h2>
+          <div id="datasetOverview" class="overview-grid"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Module Results</h2>
+          <div id="moduleResults" class="module-grid"></div>
+        </section>
+      </main>
+    </section>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

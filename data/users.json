@@ -1,0 +1,10 @@
+{
+  "user": {
+    "salt": "cf4efefd441832cce394d97e9ec40c70",
+    "hash": "5f25c883154a7eac8e798dbc7231b4dda9c0f108fb9d594cf15b5e27bab9416c"
+  },
+  "sani": {
+    "salt": "7d4fc2509c228756eaf1d06b5ee59746",
+    "hash": "6ecb7530ced180c29c6385bbe577eda10bd0363dd271bc7cd8d13a8becadc53b"
+  }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MRI Phantom QA - Access</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-shell">
+    <div class="brand-card hero-card">
+      <div class="brand-badge">MRI QA CLOUD</div>
+      <h1>ACR phantom quality assurance</h1>
+      <p>Securely upload ACR phantom DICOM ZIP files, run automated QA checks, and export pass/fail reports for audit-ready MRI monitoring.</p>
+      <div class="feature-list">
+        <span>Pass/Fail decisions</span>
+        <span>DICOM validation</span>
+        <span>Cloud-ready deployment</span>
+      </div>
+    </div>
+
+    <form class="auth-card" id="authForm">
+      <div class="auth-tabs">
+        <button type="button" id="loginTab" class="tab active">Login</button>
+        <button type="button" id="registerTab" class="tab">Register</button>
+      </div>
+      <h2 id="authTitle">Welcome back</h2>
+      <p class="muted" id="authSubtitle">Sign in to open the MRI QA dashboard.</p>
+      <label for="username">Username</label>
+      <input id="username" type="text" autocomplete="username" placeholder="Enter username" />
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Enter password" />
+      <button type="submit" class="btn primary" id="submitBtn">Login</button>
+      <p id="loginError" class="error-text"></p>
+    </form>
+  </div>
+  <script src="/static/login.js"></script>
+</body>
+</html>
