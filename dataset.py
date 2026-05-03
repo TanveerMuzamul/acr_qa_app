@@ -1,3 +1,5 @@
+# Handles loading and organizing MRI DICOM datasets
+# Prepares data for analysis modules
 from __future__ import annotations
 
 """Dataset module for the MRI ACR QA application.

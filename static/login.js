@@ -1,3 +1,4 @@
+// Handles login form submission and authentication requests
 // Front-end controller for the MRI ACR QA application.
 // Comments mark the main UI update and API communication steps.
 
