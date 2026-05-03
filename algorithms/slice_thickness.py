@@ -1,3 +1,5 @@
+# MRI quality analysis module
+# Performs specific test and returns PASS/FAIL result
 from __future__ import annotations
 
 """Slice Thickness module for the MRI ACR QA application.

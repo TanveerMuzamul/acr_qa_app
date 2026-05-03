@@ -1,3 +1,5 @@
+# Main Flask application
+# Handles login, file upload, MRI analysis, and report generation
 from __future__ import annotations
 
 """App module for the MRI ACR QA application.

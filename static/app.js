@@ -1,3 +1,4 @@
+// Handles frontend logic for uploading MRI files and showing results
 // Front-end controller for the MRI ACR QA application.
 // Comments mark the main UI update and API communication steps.
 
